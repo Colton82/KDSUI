@@ -30,6 +30,11 @@ namespace KDSUI.Pages
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Login button click event, calls API to login user
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void Login_Click(object sender, RoutedEventArgs e)
         {
             string username = Username.Text;
@@ -73,7 +78,11 @@ namespace KDSUI.Pages
             }
         }
 
-
+        /// <summary>
+        /// Register button click event, navigates to the register page
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Register_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.MainWindow.Content = new Register();

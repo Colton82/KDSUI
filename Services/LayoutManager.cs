@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 
 public static class LayoutManager
 {
+
     private static readonly HttpClient _httpClient = new HttpClient();
 
     public static ObservableCollection<string> Stations { get; private set; } = new ObservableCollection<string>();

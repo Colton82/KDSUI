@@ -10,7 +10,8 @@
 
     <Grid>
         <Button Content="Edit Layout" HorizontalAlignment="Left" Margin="522,117,0,0" VerticalAlignment="Top" Click="EditLayout_Click"/>
-        <ListBox Margin="31,100,594,125" Name="StationsList"/>
+        <ListBox Margin="31,100,594,125" Name="StationsList" SelectionChanged="StationsList_SelectionChanged"/>
+        <ListBox  Margin="367,225,287,77" Name ="Orders"/>
 
     </Grid>
 </Page>

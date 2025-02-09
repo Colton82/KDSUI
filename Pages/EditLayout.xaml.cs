@@ -24,6 +24,9 @@ namespace KDSUI.Pages
     /// </summary>
     public partial class EditLayout : Page
     {
+        /// <summary>
+        /// EditLayout constructor, Initializes the listBox
+        /// </summary>
         public EditLayout()
         {
             InitializeComponent();

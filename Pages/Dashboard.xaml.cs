@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KDSUI.Windows;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -21,12 +22,22 @@ namespace KDSUI.Pages
     /// </summary>
     public partial class Dashboard : Page
     {
+        /// <summary>
+        /// Dashboard constructor, Initializes the listBox and connects to the WebSocket
+        /// </summary>
         public Dashboard()
         {
             InitializeComponent();
             LoadListBox();
+            WebSocketClient.ConnectAsync();
+            Orders.ItemsSource = WebSocketClient.Orders;
         }
 
+        /// <summary>
+        /// EditLayout button click event, navigates to the EditLayout page
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void EditLayout_Click(object sender, RoutedEventArgs e)
         {
             EditLayout editLayout = new EditLayout();
@@ -41,6 +52,17 @@ namespace KDSUI.Pages
         {
             await LayoutManager.GetStationsAsync();
             StationsList.ItemsSource = LayoutManager.Stations;
+        }
+
+        /// <summary>
+        /// SelectionChanged event for the StationsList, opens the StationWindow
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void StationsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            StationWindow stationWindow = new(StationsList.SelectedItem.ToString());
+            stationWindow.Show();
         }
     }
 }

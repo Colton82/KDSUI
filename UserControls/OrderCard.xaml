@@ -1,0 +1,13 @@
+﻿<UserControl x:Class="KDSUI.UserControls.OrderCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="150" Width="250">
+    <Border BorderBrush="Black" BorderThickness="1" CornerRadius="10" Padding="10" Background="White">
+        <StackPanel>
+            <TextBlock Text="{Binding CustomerName}" FontSize="18" FontWeight="Bold"/>
+            <TextBlock Text="{Binding Items}" FontSize="14" />
+            <TextBlock Text="{Binding TimeElapsed}" FontSize="12" Foreground="Gray"/>
+            <Button Name="Bump" Content="Bump" Padding="5" Width="30" Height="12" Margin="175,50,10,10" Click="BumpOrder_Click"/>
+        </StackPanel>
+    </Border>
+</UserControl>
