@@ -14,6 +14,7 @@ public static class WebSocketClient
 {
     private static readonly ClientWebSocket _webSocket = new ClientWebSocket();
     private static readonly Uri _serverUri = new Uri("wss://localhost:7121/wss/orders");
+
     public static ObservableCollection<OrderModel> Orders { get; set; } = new ObservableCollection<OrderModel>();
 
     /// <summary>
@@ -56,12 +57,14 @@ public static class WebSocketClient
                 var order = JsonConvert.DeserializeObject<OrderModel>(json);
 
                 // Add to global Orders collection
-                Orders.Add(order);
+                Orders.Insert(0, order);
+
+                OrderManager.AddOrder(order);
 
                 // Notify all station windows
                 OrderReceived?.Invoke(order);
 
-                Console.WriteLine($"📢 New order received: {order.Id} for station {order.Station}");
+                Console.WriteLine($"New order received: {order.Id} for station {order.Station}");
             }
         }
     }

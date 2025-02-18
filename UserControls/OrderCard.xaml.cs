@@ -27,18 +27,15 @@ namespace KDSUI.UserControls
         {
             if (Order == null) return;
 
+            string nextStation;
             var currentStationIndex = LayoutManager.Stations.IndexOf(Order.Station);
-            if (currentStationIndex < LayoutManager.Stations.Count - 1)
-            {
-                // Move order to the next station
-                string nextStation = LayoutManager.Stations[currentStationIndex + 1];
-                OrderManager.UpdateOrderStation(Order, nextStation);
-            }
+
+            if ((currentStationIndex + 1) < LayoutManager.Stations.Count)
+                nextStation = LayoutManager.Stations[currentStationIndex + 1];
             else
-            {
-                // Order is completed, remove from system
-                OrderManager.RemoveOrder(Order);
-            }
+                nextStation = "Complete";
+
+            OrderManager.UpdateOrderStation(Order, nextStation);
         }
     }
 

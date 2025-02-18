@@ -1,4 +1,5 @@
-﻿using KDSUI.Windows;
+﻿using KDSUI.Models;
+using KDSUI.Windows;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -31,6 +32,16 @@ namespace KDSUI.Pages
             LoadListBox();
             WebSocketClient.ConnectAsync();
             Orders.ItemsSource = WebSocketClient.Orders;
+            OrderManager.OrderUpdated += OnOrderUpdated;
+        }
+
+        /// <summary>
+        /// OrderUpdated event, updates the Orders list box
+        /// </summary>
+        /// <param name="model"></param>
+        private void OnOrderUpdated(OrderModel model)
+        {
+            Orders.ItemsSource = WebSocketClient.Orders;
         }
 
         /// <summary>
@@ -41,7 +52,8 @@ namespace KDSUI.Pages
         private void EditLayout_Click(object sender, RoutedEventArgs e)
         {
             EditLayout editLayout = new EditLayout();
-            Application.Current.MainWindow.Content = editLayout;
+            PasswordWindow passwordBox = new PasswordWindow(editLayout);
+            passwordBox.Show();
         }
 
         /// <summary>
@@ -63,6 +75,11 @@ namespace KDSUI.Pages
         {
             StationWindow stationWindow = new(StationsList.SelectedItem.ToString());
             stationWindow.Show();
+        }
+
+        private void Logout_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

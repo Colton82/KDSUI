@@ -49,33 +49,42 @@ namespace KDSUI.Pages
             var json = JsonSerializer.Serialize(loginRequest);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using (var client = new HttpClient())
+            try
             {
-                client.BaseAddress = new Uri("https://localhost:7121/");
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                HttpResponseMessage response = await client.PostAsync("api/Users/login", content);
-                if (response.IsSuccessStatusCode)
+                using (var client = new HttpClient())
                 {
-                    // Parse the response content to get the userID
-                    string result = await response.Content.ReadAsStringAsync();
-                    var jsonResponse = JsonSerializer.Deserialize<JsonElement>(result);
+                    client.BaseAddress = new Uri("https://localhost:7121/");
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                    // Get the userID from the JSON response
-                    int userId = jsonResponse.GetProperty("userID").GetInt32();
+                    HttpResponseMessage response = await client.PostAsync("api/Users/login", content);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Parse the response content to get the userID
+                        string result = await response.Content.ReadAsStringAsync();
+                        var jsonResponse = JsonSerializer.Deserialize<JsonElement>(result);
 
-                    // Store the userID in the session or another appropriate place
-                    SessionManager._userId = userId;
-                    Dashboard dashboard = new Dashboard();
-                    Application.Current.MainWindow.Content = dashboard;
+                        // Get the userID from the JSON response
+                        int userId = jsonResponse.GetProperty("userID").GetInt32();
 
-                }
-                else
-                {
-                    MessageBox.Show("Login failed. Please check your credentials.");
+                        // Store the userID in the session or another appropriate place
+                        SessionManager._username = username;
+                        SessionManager._userId = userId;
+                        Dashboard dashboard = new Dashboard();
+                        Application.Current.MainWindow.Content = dashboard;
+
+                    }
+                    else
+                    {
+                        MessageBox.Show("Login failed. Please check your credentials.");
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Connection ERR");
+            }
+
         }
 
         /// <summary>

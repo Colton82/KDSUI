@@ -38,11 +38,20 @@ namespace KDSUI.Pages
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void Delete_CLick(object sender, RoutedEventArgs e)
+        private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            LayoutManager.Stations.Remove(StationsList.SelectedItem.ToString());
-            LayoutManager.SaveStationsAsync();
+            // Retrieve the station name from the button's CommandParameter
+            if (sender is Button deleteButton && deleteButton.CommandParameter is string stationName)
+            {
+                // Remove the station from the list
+                LayoutManager.Stations.Remove(stationName);
+                LayoutManager.SaveStationsAsync();
+
+                // Refresh UI to reflect changes
+                StationsList.Items.Refresh();
+            }
         }
+
 
         /// <summary>
         /// Show the AddStationWindow to add a new station

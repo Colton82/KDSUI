@@ -10,5 +10,6 @@ namespace KDSUI.Services
     {
         // This is a static class that will hold the user ID
         public static int _userId { get; set; }
+        public static string _username { get; set; }
     }
 }
