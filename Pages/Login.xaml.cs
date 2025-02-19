@@ -25,9 +25,19 @@ namespace KDSUI.Pages
     /// </summary>
     public partial class Login : Page
     {
+        private string username;
+        private string password;
+
         public Login()
         {
             InitializeComponent();
+        }
+
+        public Login(string username, string password)
+        {
+            InitializeComponent();
+            Username.Text = username;
+            Password.Password = password;
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 ﻿using KDSUI.Models;
+using KDSUI.Services;
 using KDSUI.Windows;
 using System;
 using System.Collections.Generic;
@@ -53,6 +54,7 @@ namespace KDSUI.Pages
         {
             EditLayout editLayout = new EditLayout();
             PasswordWindow passwordBox = new PasswordWindow(editLayout);
+            passwordBox.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             passwordBox.Show();
         }
 
@@ -79,7 +81,9 @@ namespace KDSUI.Pages
 
         private void Logout_Click(object sender, RoutedEventArgs e)
         {
-
+            SessionManager._userId = -1;
+            SessionManager._username = null;
+            Application.Current.MainWindow.Content = new Login();
         }
     }
 }
