@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KDSUI.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// Client for the WebSocket server, used by the POS system to receive orders
@@ -15,12 +16,10 @@ public static class WebSocketClient
     private static readonly ClientWebSocket _webSocket = new ClientWebSocket();
     private static readonly Uri _serverUri = new Uri("wss://localhost:7121/wss/orders");
 
-    public static ObservableCollection<OrderModel> Orders { get; set; } = new ObservableCollection<OrderModel>();
-
     /// <summary>
     /// Event that is raised when a new order is received, used to update station views
     /// </summary>
-    public static event Action<OrderModel> OrderReceived;
+    public static event Action<DynamicOrderModel> OrderReceived;
 
     /// <summary>
     /// Connects to the WebSocket server
@@ -54,18 +53,108 @@ public static class WebSocketClient
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 string json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                var order = JsonConvert.DeserializeObject<OrderModel>(json);
 
-                // Add to global Orders collection
-                Orders.Insert(0, order);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    Console.WriteLine("Received empty JSON. Skipping...");
+                    continue;
+                }
 
-                OrderManager.AddOrder(order);
+                try
+                {
+                    JObject jObject = JObject.Parse(json);
+                    Console.WriteLine($"Parsed JSON: {jObject}");
 
-                // Notify all station windows
-                OrderReceived?.Invoke(order);
+                    // Ensure 'items' exists, otherwise set an empty dictionary
+                    if (!jObject.ContainsKey("Items"))
+                    {
+                        jObject["Items"] = new JObject(); // Default to empty dictionary
+                    }
 
-                Console.WriteLine($"New order received: {order.Id} for station {order.Station}");
+                    // If station is missing, assign to the first available station
+                    if (!jObject.ContainsKey("station") || string.IsNullOrWhiteSpace(jObject["station"]?.ToString()))
+                    {
+                        if (LayoutManager.Stations.Count > 0)
+                        {
+                            jObject["station"] = LayoutManager.Stations[0]; // Assign first station
+                        }
+                        else
+                        {
+                            jObject["station"] = "Unassigned"; // Default if no stations exist
+                        }
+                    }
+
+                    // Convert JSON to DynamicOrderModel
+                    DynamicOrderModel order = jObject.ToObject<DynamicOrderModel>();
+
+                    // Ensure 'items' is stored as a Dictionary<string, object>
+                    if (jObject["Items"] is JObject itemsObject)
+                    {
+                        var deserializedItems = itemsObject.ToObject<Dictionary<string, object>>();
+
+                        // Fix any nested JSON strings that are stored inside `Items`
+                        order.Items = ParseNestedItems(deserializedItems);
+                    }
+
+                    // Insert into orders and notify system
+                    OrderManager.AddOrder(order);
+                    OrderReceived?.Invoke(order);
+                    Console.WriteLine($"New order received: {order.Id} for station {order.Station}");
+
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"Error parsing JSON: {ex.Message}");
+                }
+                catch (ArgumentNullException ex)
+                {
+                    Console.WriteLine($"Null value error: {ex.Message}");
+                }
             }
+
         }
     }
+
+    public static Dictionary<string, object> ParseNestedItems(Dictionary<string, object> items)
+    {
+        var parsedItems = new Dictionary<string, object>();
+
+        foreach (var kvp in items)
+        {
+            if (kvp.Value is string jsonString && IsJson(jsonString))
+            {
+                try
+                {
+                    // Deserialize nested JSON strings into Dictionary<string, object>
+                    var nestedDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonString);
+                    parsedItems[kvp.Key] = ParseNestedItems(nestedDict); // Recursively parse deeper
+                }
+                catch
+                {
+                    parsedItems[kvp.Key] = kvp.Value; // Keep as-is if deserialization fails
+                }
+            }
+            else if (kvp.Value is JObject jObject)
+            {
+                // Directly convert JObject to Dictionary
+                parsedItems[kvp.Key] = ParseNestedItems(jObject.ToObject<Dictionary<string, object>>());
+            }
+            else
+            {
+                parsedItems[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return parsedItems;
+    }
+
+    /// <summary>
+    /// Checks if a string is valid JSON.
+    /// </summary>
+    private static bool IsJson(string input)
+    {
+        input = input.Trim();
+        return (input.StartsWith("{") && input.EndsWith("}")) || (input.StartsWith("[") && input.EndsWith("]"));
+    }
+
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using KDSUI.Services;
@@ -27,6 +28,9 @@ public static class LayoutManager
 
         try
         {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", SessionManager._jwtToken);
+
             var response = await _httpClient.GetStringAsync($"https://localhost:7121/api/Layout?id={id}");
 
             var stationList = JsonConvert.DeserializeObject<List<string>>(response);
@@ -49,6 +53,9 @@ public static class LayoutManager
 
         try
         {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", SessionManager._jwtToken);
+
             var jsonContent = JsonConvert.SerializeObject(Stations);
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 

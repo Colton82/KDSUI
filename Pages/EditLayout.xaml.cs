@@ -61,7 +61,7 @@ namespace KDSUI.Pages
         private void Add_Click(object sender, RoutedEventArgs e)
         {
             AddStationWindow addStationWindow = new AddStationWindow();
-
+            addStationWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             bool? result = addStationWindow.ShowDialog();
 
             if (result == true)

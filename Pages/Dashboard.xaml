@@ -84,10 +84,10 @@
         <!-- Orders Section -->
         <Border Grid.Row="0" Grid.Column="2" Margin="10" Padding="20" Background="White" CornerRadius="10"
                 BorderBrush="LightGray" BorderThickness="1">
-            <StackPanel>
+            <Grid>
                 <TextBlock Text="Orders" FontSize="20" FontWeight="Bold" Foreground="Black" TextAlignment="Center" Margin="0,0,0,10"/>
                 <ListBox Name="Orders" Background="White" Foreground="Black" BorderBrush="LightGray" BorderThickness="1"/>
-            </StackPanel>
+            </Grid>
         </Border>
 
         <!-- Logout Button at the Bottom -->
