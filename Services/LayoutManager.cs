@@ -8,64 +8,88 @@ using Newtonsoft.Json;
 
 public static class LayoutManager
 {
-
+    // Static HTTP client used for communicating with the backend
     private static readonly HttpClient _httpClient = new HttpClient();
 
-    public static ObservableCollection<string> Stations { get; private set; } = new ObservableCollection<string>();
+    // Observable list of station names bound to the UI
+    public static ObservableCollection<string> Stations { get; set; } = new ObservableCollection<string>();
 
-    static LayoutManager()
-    {
-        GetStationsAsync();
-    }
+    // Static constructor automatically fetches station data when the class is first used
+    static LayoutManager() => GetStationsAsync();
 
-    /// <summary>
-    /// Loads stations from the API asynchronously
-    /// </summary>
-    /// <returns></returns>
+    // Retrieves the station layout for the current user from the API
     public static async Task GetStationsAsync()
     {
-        var id = SessionManager._userId;
+        var username = SessionManager._username;
 
         try
         {
+            // Add the user's authentication token to the request
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", SessionManager._jwtToken);
 
-            var response = await _httpClient.GetStringAsync($"https://localhost:7121/api/Layout?id={id}");
+            // Make a GET request to retrieve the user's saved layout
+            var response = await _httpClient.GetStringAsync($"https://localhost:7121/api/Layout?username={username}");
 
+            // Deserialize the station list from JSON
             var stationList = JsonConvert.DeserializeObject<List<string>>(response);
 
-            Stations = new ObservableCollection<string>(stationList);
+            // If no stations exist, provide a fallback default
+            if (stationList == null || stationList.Count <= 0)
+            {
+                stationList = new List<string>()
+                {
+                    "Station 1"
+                };
+            }
+
+            // If station names are numeric, convert them to "Station {number}"
+            for (int i = 0; i < stationList.Count; i++)
+            {
+                if (stationList[i].All(char.IsDigit))
+                {
+                    stationList[i] = $"Station {stationList[i]}";
+                }
+            }
+
+            // Clear the existing observable list and repopulate it
+            Stations.Clear();
+
+            if (stationList != null)
+            {
+                stationList.ForEach(station => Stations.Add(station));
+            }
         }
         catch (Exception ex)
         {
+            // Log any errors to the debug console
             System.Diagnostics.Debug.WriteLine($"Error loading stations: {ex.Message}");
         }
     }
 
-    /// <summary>
-    /// Saves the current Stations collection to the API asynchronously
-    /// </summary>
-    /// <returns></returns>
+    // Sends the current list of stations to the backend to be saved
     public static async Task SaveStationsAsync()
     {
-        var id = SessionManager._userId;
+        var username = SessionManager._username;
 
         try
         {
+            // Add authentication token to the request
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", SessionManager._jwtToken);
 
-            var jsonContent = JsonConvert.SerializeObject(Stations);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            // Serialize the station list to JSON
+            var jsonContent = new StringContent(JsonConvert.SerializeObject(Stations), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"https://localhost:7121/api/Layout/save/{id}", content);
+            // Send a POST request to save the layout for the current user
+            var response = await _httpClient.PostAsync($"https://localhost:7121/api/Layout/save/{username}", jsonContent);
 
-
+            // Ensure the response indicates success; otherwise, throw an exception
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
         {
+            // Log any errors to the debug console
             System.Diagnostics.Debug.WriteLine($"Error saving stations: {ex.Message}");
         }
     }

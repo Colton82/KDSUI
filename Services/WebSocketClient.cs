@@ -5,44 +5,64 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KDSUI.Models;
+using KDSUI.Services;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 /// <summary>
-/// Client for the WebSocket server, used by the POS system to receive orders
+/// Manages the WebSocket connection used to receive real-time orders from the POS system.
 /// </summary>
 public static class WebSocketClient
 {
-    private static readonly ClientWebSocket _webSocket = new ClientWebSocket();
-    private static readonly Uri _serverUri = new Uri("wss://localhost:7121/wss/orders");
+    // Persistent WebSocket client instance used for the connection
+    private static ClientWebSocket _webSocket = new ClientWebSocket();
 
-    /// <summary>
-    /// Event that is raised when a new order is received, used to update station views
-    /// </summary>
+    // Event that is triggered whenever a new order is received via WebSocket
     public static event Action<DynamicOrderModel> OrderReceived;
 
-    /// <summary>
-    /// Connects to the WebSocket server
-    /// </summary>
-    /// <returns></returns>
+    // Constructs the WebSocket URI
+    private static Uri GetWebSocketUri()
+    {
+        return new Uri("wss://localhost:7121/wss/orders");
+    }
+
     public static async Task ConnectAsync()
     {
-        try
+        int maxRetries = 5;
+        int delay = 2000;
+        Uri serverUri = GetWebSocketUri();
+        if (_webSocket == null)
+            _webSocket = new ClientWebSocket();
+
+        // Attach JWT token as Authorization header
+        _webSocket.Options.SetRequestHeader("Authorization", $"Bearer {SessionManager._jwtToken}");
+        System.Diagnostics.Debug.WriteLine($"Attaching JWT: {SessionManager._jwtToken}");
+
+        Console.WriteLine($"Attempting to connect to WebSocket: {serverUri}");
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            await _webSocket.ConnectAsync(_serverUri, CancellationToken.None);
-            Console.WriteLine("Connected to WebSocket server.");
-            await ListenForOrders();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"WebSocket connection error: {ex.Message}");
+            try
+            {
+                await _webSocket.ConnectAsync(serverUri, CancellationToken.None);
+                Console.WriteLine("Connected to WebSocket server.");
+                await ListenForOrders();
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"WebSocket connection error (Attempt {attempt}/{maxRetries}): {ex.Message}");
+
+                if (attempt == maxRetries)
+                    throw;
+
+                await Task.Delay(delay);
+            }
         }
     }
 
-    /// <summary>
-    /// Listens for incoming orders
-    /// </summary>
-    /// <returns></returns>
+
+    // Continuously listens for incoming order messages from the server
     private static async Task ListenForOrders()
     {
         var buffer = new byte[1024 * 4];
@@ -50,6 +70,8 @@ public static class WebSocketClient
         while (_webSocket.State == WebSocketState.Open)
         {
             var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+            // Handle only text-based messages
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 string json = Encoding.UTF8.GetString(buffer, 0, result.Count);
@@ -62,45 +84,36 @@ public static class WebSocketClient
 
                 try
                 {
+                    // Parse the incoming JSON into a JObject
                     JObject jObject = JObject.Parse(json);
                     Console.WriteLine($"Parsed JSON: {jObject}");
 
-                    // Ensure 'items' exists, otherwise set an empty dictionary
+                    // Ensure "Items" exists, even if it's an empty array
                     if (!jObject.ContainsKey("Items"))
                     {
-                        jObject["Items"] = new JObject(); // Default to empty dictionary
+                        jObject["Items"] = new JArray();
                     }
 
-                    // If station is missing, assign to the first available station
+                    // Default station assignment if missing
                     if (!jObject.ContainsKey("station") || string.IsNullOrWhiteSpace(jObject["station"]?.ToString()))
                     {
-                        if (LayoutManager.Stations.Count > 0)
-                        {
-                            jObject["station"] = LayoutManager.Stations[0]; // Assign first station
-                        }
-                        else
-                        {
-                            jObject["station"] = "Unassigned"; // Default if no stations exist
-                        }
+                        jObject["station"] = LayoutManager.Stations.FirstOrDefault() ?? "Unassigned";
                     }
 
-                    // Convert JSON to DynamicOrderModel
+                    // Convert the JObject into a DynamicOrderModel instance
                     DynamicOrderModel order = jObject.ToObject<DynamicOrderModel>();
 
-                    // Ensure 'items' is stored as a Dictionary<string, object>
-                    if (jObject["Items"] is JObject itemsObject)
+                    // Deserialize the order items properly into ObservableCollection
+                    if (jObject["Items"] is JArray itemsArray)
                     {
-                        var deserializedItems = itemsObject.ToObject<Dictionary<string, object>>();
-
-                        // Fix any nested JSON strings that are stored inside `Items`
-                        order.Items = ParseNestedItems(deserializedItems);
+                        var deserializedItems = itemsArray.ToObject<List<OrderItem>>() ?? new List<OrderItem>();
+                        order.Items = new ObservableCollection<OrderItem>(deserializedItems);
                     }
 
-                    // Insert into orders and notify system
+                    // Add the order to the system and trigger any live updates
                     OrderManager.AddOrder(order);
                     OrderReceived?.Invoke(order);
                     Console.WriteLine($"New order received: {order.Id} for station {order.Station}");
-
                 }
                 catch (JsonException ex)
                 {
@@ -111,50 +124,27 @@ public static class WebSocketClient
                     Console.WriteLine($"Null value error: {ex.Message}");
                 }
             }
-
         }
     }
 
-    public static Dictionary<string, object> ParseNestedItems(Dictionary<string, object> items)
+    public static async Task DisconnectAsync()
     {
-        var parsedItems = new Dictionary<string, object>();
-
-        foreach (var kvp in items)
+        try
         {
-            if (kvp.Value is string jsonString && IsJson(jsonString))
+            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
             {
-                try
-                {
-                    // Deserialize nested JSON strings into Dictionary<string, object>
-                    var nestedDict = JsonConvert.DeserializeObject<Dictionary<string, object>>(jsonString);
-                    parsedItems[kvp.Key] = ParseNestedItems(nestedDict); // Recursively parse deeper
-                }
-                catch
-                {
-                    parsedItems[kvp.Key] = kvp.Value; // Keep as-is if deserialization fails
-                }
-            }
-            else if (kvp.Value is JObject jObject)
-            {
-                // Directly convert JObject to Dictionary
-                parsedItems[kvp.Key] = ParseNestedItems(jObject.ToObject<Dictionary<string, object>>());
-            }
-            else
-            {
-                parsedItems[kvp.Key] = kvp.Value;
+                Console.WriteLine("Closing WebSocket due to logout...");
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "User logout", CancellationToken.None);
             }
         }
-
-        return parsedItems;
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error while closing WebSocket: {ex.Message}");
+        }
+        finally
+        {
+            _webSocket?.Dispose();
+            _webSocket = null;
+        }
     }
-
-    /// <summary>
-    /// Checks if a string is valid JSON.
-    /// </summary>
-    private static bool IsJson(string input)
-    {
-        input = input.Trim();
-        return (input.StartsWith("{") && input.EndsWith("}")) || (input.StartsWith("[") && input.EndsWith("]"));
-    }
-
 }

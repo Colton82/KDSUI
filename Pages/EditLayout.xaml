@@ -3,103 +3,83 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:vm="clr-namespace:KDSUI.ViewModels"
       xmlns:local="clr-namespace:KDSUI.Pages"
       mc:Ignorable="d" 
       Title="Edit Layout"
-      Background="#f4f4f4" d:DesignWidth="498.872" d:DesignHeight="427.632">
+      Background="#f4f4f4">
+
+    <!-- Set the ViewModel for this page -->
+    <Page.DataContext>
+        <vm:EditLayoutViewModel/>
+    </Page.DataContext>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Top Bar -->
             <RowDefinition Height="*"/>
-            <!-- Main Content -->
         </Grid.RowDefinitions>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="3*"/>
-            <!-- Station List -->
-        </Grid.ColumnDefinitions>
-        
-        <!-- "Add" Button -->
+        <!-- "Add" button to add a new station to the list -->
         <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" Margin="0,0,10,10">
             <Button Width="120" Height="40" 
-            BorderBrush="#0078D7" Foreground="White" Background="#0078D7" FontWeight="Bold"
-            Cursor="Hand" Click="Add_Click">
-                <Button Content="Add"/>
+                    BorderBrush="#0078D7" Foreground="White" Background="#0078D7" FontWeight="Bold"
+                    Cursor="Hand" Command="{Binding AddStationCommand}">
+                <TextBlock Text="Add"/>
             </Button>
         </StackPanel>
 
-        <!-- "Done" Button -->
+        <!-- "Back" button to return to the previous page -->
         <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" Margin="0,0,10,10">
             <Button Width="120" Height="40" Background="Transparent" 
                     BorderBrush="#0078D7" Foreground="#0078D7" FontWeight="Bold"
-                    Cursor="Hand" Click="Back_Click">
-                <Button Content="Back"/>
+                    Cursor="Hand" Command="{Binding GoBackCommand}">
+                <TextBlock Text="Back"/>
             </Button>
         </StackPanel>
 
-        <!-- Center Section: List of Stations (Styled as Buttons) -->
+        <!-- Main section containing the editable list of stations -->
         <Border Grid.Row="1" Grid.Column="0" Margin="10" Padding="20" Background="White" CornerRadius="10"
                 BorderBrush="LightGray" BorderThickness="1">
             <StackPanel>
-                <TextBlock Text="Stations" FontSize="20" FontWeight="Bold" Foreground="Black" TextAlignment="Center" Margin="0,0,0,10"/>
-                <ListBox Name="StationsList" Background="White" Foreground="Black" BorderBrush="LightGray" 
-                         AllowDrop="True"
-                         PreviewMouseLeftButtonDown="StationsListBox_PreviewMouseLeftButtonDown" 
-                         PreviewMouseMove="StationsListBox_PreviewMouseMove" 
-                         Drop="StationsListBox_Drop">
-                    
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Margin" Value="5"/>
-                            <Setter Property="Padding" Value="10"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Setter Property="BorderBrush" Value="LightGray"/>
-                            <Setter Property="BorderThickness" Value="1"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" 
-                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/>
-                                                    <ColumnDefinition Width="40"/>
-                                                </Grid.ColumnDefinitions>
 
-                                                <!-- Station Name -->
-                                                <TextBlock Text="{Binding}" FontSize="16" Foreground="Black" 
-                                                           VerticalAlignment="Center" Margin="10"/>
+                <!-- Header text for the stations list -->
+                <TextBlock Text="Stations" FontSize="20" FontWeight="Bold" Foreground="Black" 
+                           TextAlignment="Center" Margin="0,0,0,10"/>
 
-                                                <!-- Delete Button -->
-                                                <Button Content="✖" Width="30" Height="30" Grid.Column="1"
-                                                           Background="Transparent" Foreground="Red"
-                                                           BorderBrush="Transparent" FontSize="14" 
-                                                           Click="Delete_Click"
-                                                           CommandParameter="{Binding}"/>
+                <!-- List of station names with drag-and-drop and delete functionality -->
+                <ListBox ItemsSource="{Binding Stations}" AllowDrop="True"
+                         IsEnabled="{Binding CanEditStations}"
+                         PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown"
+                         PreviewMouseMove="ListBox_PreviewMouseMove"
+                         Drop="ListBox_Drop"
+                         Background="White"
+                         BorderBrush="Gray"
+                         Foreground="Black">
 
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="40"/>
+                                </Grid.ColumnDefinitions>
 
-                                            </Grid>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#0078D7"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
+                                <!-- Displays the station name -->
+                                <TextBlock Text="{Binding}" FontSize="16" Foreground="Black" 
+                                           VerticalAlignment="Center" Margin="10"/>
+
+                                <!-- Delete button to remove the station -->
+                                <Button Content="✖" Width="30" Height="30" Grid.Column="1"
+                                        Background="Transparent" Foreground="Red"
+                                        BorderBrush="Transparent" FontSize="14"
+                                        Command="{Binding DataContext.RemoveStationCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
                 </ListBox>
             </StackPanel>
         </Border>
-
     </Grid>
 </Page>

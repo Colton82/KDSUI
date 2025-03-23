@@ -33,8 +33,6 @@ namespace KDSUI.Windows
 
         private async void Done_Click(object sender, RoutedEventArgs e)
         {
-
-
             var loginRequest = new
             {
                 Username = SessionManager._username,
@@ -56,8 +54,8 @@ namespace KDSUI.Windows
                     if (response.IsSuccessStatusCode)
                     {
                         this.Close();
-                        Application.Current.MainWindow.Content = page;
 
+                        Application.Current.MainWindow.Content = page;
                     }
                     else
                     {
@@ -70,5 +68,6 @@ namespace KDSUI.Windows
                 MessageBox.Show("Connection ERR");
             }
         }
+
     }
 }

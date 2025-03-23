@@ -34,14 +34,17 @@
                            Foreground="Red" Grid.Column="1"/>
             </Grid>
 
-            <!-- Order Details -->
-            <StackPanel Grid.Row="1">
-                <ItemsControl ItemsSource="{Binding Items}" Margin="5">
+            <!-- Order Details (Updated for new Items Format) -->
+            <StackPanel Grid.Row="1" Margin="5">
+                <ItemsControl ItemsSource="{Binding Items}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="3">
-                                <TextBlock FontWeight="Bold" FontSize="16" Text="{Binding Key}" />
-                                <ItemsControl ItemsSource="{Binding Value}">
+                            <StackPanel Margin="5">
+                                <!-- Item Name -->
+                                <TextBlock FontWeight="Bold" FontSize="16" Text="{Binding Name}" />
+
+                                <!-- Item Properties -->
+                                <ItemsControl ItemsSource="{Binding Properties}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
@@ -58,7 +61,7 @@
                 </ItemsControl>
             </StackPanel>
 
-            <!-- Bump Order Button (always at the bottom) -->
+            <!-- Bump Order Button -->
             <Button Content="Bump Order" Click="BumpOrder_Click"
                     Width="120" Height="40" Background="LightGreen"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom"

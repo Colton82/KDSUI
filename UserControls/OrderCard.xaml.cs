@@ -8,28 +8,29 @@ using System.Windows.Controls;
 namespace KDSUI.UserControls
 {
     /// <summary>
-    /// Order cards are used to display order information, and are used in the StationView
+    /// Represents a single visual order card used in StationView.
+    /// Displays customer info, items, and a live timer for time tracking.
     /// </summary>
     public partial class OrderCard : UserControl
     {
         private System.Timers.Timer _timer;
         private DateTime _orderTime;
 
+        // Strongly-typed binding to the order this card represents
         public DynamicOrderModel Order
         {
             get => DataContext as DynamicOrderModel;
             set => DataContext = value;
         }
 
+        // Constructor sets up the UI and hooks the Loaded event
         public OrderCard()
         {
             InitializeComponent();
-            this.Loaded += OrderCard_Loaded; // Ensure UI loads correctly
+            this.Loaded += OrderCard_Loaded;
         }
 
-        /// <summary>
-        /// Runs when the OrderCard is fully loaded
-        /// </summary>
+        // Triggered when the card is fully loaded into the visual tree
         private void OrderCard_Loaded(object sender, RoutedEventArgs e)
         {
             if (Order == null)
@@ -38,14 +39,16 @@ namespace KDSUI.UserControls
                 return;
             }
 
-            Console.WriteLine($"Loaded OrderCard for {Order.CustomerName}, items: {JsonConvert.SerializeObject(Order.Items)}");
+            // Debug output for inspecting the order
+            Console.WriteLine($"Loaded OrderCard for {Order.CustomerName}, items: {JsonConvert.SerializeObject(Order.Items, Formatting.Indented)}");
 
+            // Extract the most recent timestamp from the order history
             string extractedTimestamp = ExtractLatestTimestamp(Order.Timestamp);
 
-            // Initialize Timer
+            // If the timestamp is valid, start a live timer
             if (!string.IsNullOrEmpty(extractedTimestamp) && DateTime.TryParse(extractedTimestamp, out _orderTime))
             {
-                _timer = new System.Timers.Timer(1000); // Update every second
+                _timer = new System.Timers.Timer(1000); // Tick every second
                 _timer.Elapsed += UpdateTimer;
                 _timer.Start();
             }
@@ -55,9 +58,8 @@ namespace KDSUI.UserControls
             }
         }
 
-        /// <summary>
-        /// Bump the order to the next station
-        /// </summary>
+        // Triggered when the "Bump" button is clicked
+        // Moves the order to the next station or marks it complete
         private void BumpOrder_Click(object sender, RoutedEventArgs e)
         {
             if (Order == null) return;
@@ -73,23 +75,24 @@ namespace KDSUI.UserControls
             OrderManager.UpdateOrderStation(Order, nextStation);
         }
 
-        //--------Timer Methods--------//
+        // -------- Timer Methods -------- //
 
-        /// <summary>
-        /// Updates the timer display
-        /// </summary>
+        // Updates the elapsed time shown on the card every second
         private void UpdateTimer(object sender, ElapsedEventArgs e)
         {
             TimeSpan elapsed = DateTime.Now - _orderTime;
-
             string formattedTime = $"{(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
 
             try
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                if (Application.Current != null)
                 {
-                    TimerTextBlock.Text = formattedTime;
-                });
+                    // Ensure UI updates are done on the main thread
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        TimerTextBlock.Text = formattedTime;
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -97,17 +100,13 @@ namespace KDSUI.UserControls
             }
         }
 
-        /// <summary>
-        /// Extracts the most recent timestamp from the station-prefixed string.
-        /// </summary>
+        // Extracts the most recent timestamp from a multi-station history string
         private string ExtractLatestTimestamp(string timeStampString)
         {
             if (string.IsNullOrWhiteSpace(timeStampString)) return null;
 
-            // Split based on station delimiters (" | ") and get the last segment
             string[] parts = timeStampString.Split(" | ", StringSplitOptions.RemoveEmptyEntries);
-            return parts.LastOrDefault()?.Trim(); // Get last timestamp part
+            return parts.LastOrDefault()?.Trim();
         }
-
     }
 }

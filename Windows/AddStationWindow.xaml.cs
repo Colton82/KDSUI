@@ -23,6 +23,9 @@ namespace KDSUI.Windows
         {
             if (!string.IsNullOrWhiteSpace(StationNameTextBox.Text))
             {
+                string station = StationNameTextBox.Text;
+                if(station.All(char.IsDigit))
+                    station = $"Station {station}";
                 StationName = StationNameTextBox.Text.Trim();
                 DialogResult = true;
                 Close();

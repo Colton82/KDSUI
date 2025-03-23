@@ -1,5 +1,5 @@
-﻿using KDSUI.Models;
-using KDSUI.UserControls;
+﻿using KDSUI.Data;
+using KDSUI.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -25,26 +25,53 @@ namespace KDSUI.Windows
             DataContext = this;
 
             // Load existing orders for this station
-            foreach (var order in OrderManager.GetOrdersForStation(stationName))
-            {
-                System.Diagnostics.Debug.WriteLine("Adding order to station window: " + order.ToString());
-                Orders.Add(order);
-            }
+            LoadOrders();
 
-            // Set initial items source for ItemsControl
+            // Bind paged orders to the UI
             OrdersPanel.ItemsSource = pagedOrders;
-
             UpdatePage();
 
-            // Subscribe to real-time updates (new orders and bumps)
-            WebSocketClient.OrderReceived += OnOrderUpdated;
-            OrderManager.OrderUpdated += OnOrderUpdated;
+            // Subscribe to real-time updates
+            WebSocketClient.OrderReceived += OnOrderReceived;
+            OrderManager.OrdersUpdated += RefreshOrders; // FIX: Changed event signature
 
             // Enable keyboard navigation
             this.KeyDown += Window_KeyDown;
         }
 
-        private void OnOrderUpdated(DynamicOrderModel order)
+        /// <summary>
+        /// Loads orders dynamically from `OrderManager` for this station.
+        /// </summary>
+        private void LoadOrders()
+        {
+            Orders.Clear();
+            foreach (var order in OrderManager.GetOrdersForStation(StationName))
+            {
+                Orders.Add(order);
+            }
+            UpdatePage();
+        }
+
+        /// <summary>
+        /// Updates the paginated orders view.
+        /// </summary>
+        private void UpdatePage()
+        {
+            pagedOrders.Clear();
+            var ordersToShow = Orders.Skip(currentPage * OrdersPerPage).Take(OrdersPerPage).ToList();
+            foreach (var order in ordersToShow)
+            {
+                pagedOrders.Add(order);
+            }
+
+            // Update page indicator
+            PageIndicator.Text = $"Page {currentPage + 1} of {Math.Max(1, (Orders.Count + OrdersPerPage - 1) / OrdersPerPage)}";
+        }
+
+        /// <summary>
+        /// Called when a new order is received via WebSocket.
+        /// </summary>
+        private void OnOrderReceived(DynamicOrderModel order)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -58,25 +85,25 @@ namespace KDSUI.Windows
                 }
                 else
                 {
-                    RemoveOrder(order); // Remove order if it moves to another station
+                    RemoveOrder(order);
                 }
             });
         }
 
-        private void UpdatePage()
+        /// <summary>
+        /// Called when `OrdersUpdated` event is triggered to refresh station orders.
+        /// </summary>
+        private void RefreshOrders()
         {
-            pagedOrders.Clear();
-            var ordersToShow = Orders.Skip(currentPage * OrdersPerPage).Take(OrdersPerPage).ToList();
-
-            foreach (var order in ordersToShow)
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                pagedOrders.Add(order);
-            }
-
-            // Update page indicator
-            PageIndicator.Text = $"Page {currentPage + 1} of {Math.Max(1, (Orders.Count + OrdersPerPage - 1) / OrdersPerPage)}";
+                LoadOrders(); // Reload station orders
+            });
         }
 
+        /// <summary>
+        /// Removes an order when it moves to another station.
+        /// </summary>
         public void RemoveOrder(DynamicOrderModel order)
         {
             if (Orders.Contains(order))
@@ -105,36 +132,32 @@ namespace KDSUI.Windows
         }
 
         /// <summary>
-        /// Enables the arrow keys to control page navigation
+        /// Enables the arrow keys to control page navigation.
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Handled) return; // Prevents multiple triggers
+            if (e.Handled) return;
 
             if (e.Key == Key.Left && currentPage > 0)
             {
-                currentPage--; // Move back only one page
+                currentPage--;
                 UpdatePage();
             }
             else if (e.Key == Key.Right && (currentPage + 1) * OrdersPerPage < Orders.Count)
             {
-                currentPage++; // Move forward only one page
+                currentPage++;
                 UpdatePage();
             }
 
-            e.Handled = true; // Marks the event as handled to prevent repeats
+            e.Handled = true;
         }
-
-
 
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-            WebSocketClient.OrderReceived -= OnOrderUpdated;
-            OrderManager.OrderUpdated -= OnOrderUpdated; // Unsubscribe to prevent memory leaks
-            this.KeyDown -= Window_KeyDown; // Unsubscribe from key events
+            WebSocketClient.OrderReceived -= OnOrderReceived;
+            OrderManager.OrdersUpdated -= RefreshOrders;
+            this.KeyDown -= Window_KeyDown;
         }
     }
 }

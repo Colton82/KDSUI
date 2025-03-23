@@ -1,158 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Text.Json;
-using KDSUI.Windows;
+using KDSUI.ViewModels;
 
 namespace KDSUI.Pages
 {
-    /// <summary>
-    /// Interaction logic for EditLayout.xaml
-    /// </summary>
+    // Code-behind for the EditLayout page
     public partial class EditLayout : Page
     {
-        /// <summary>
-        /// EditLayout constructor, Initializes the listBox
-        /// </summary>
-        public EditLayout()
-        {
-            InitializeComponent();
-            StationsList.ItemsSource = LayoutManager.Stations;
-        }
-
-        /// <summary>
-        /// Delete the selected station
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Delete_Click(object sender, RoutedEventArgs e)
-        {
-            // Retrieve the station name from the button's CommandParameter
-            if (sender is Button deleteButton && deleteButton.CommandParameter is string stationName)
-            {
-                // Remove the station from the list
-                LayoutManager.Stations.Remove(stationName);
-                LayoutManager.SaveStationsAsync();
-
-                // Refresh UI to reflect changes
-                StationsList.Items.Refresh();
-            }
-        }
-
-
-        /// <summary>
-        /// Show the AddStationWindow to add a new station
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Add_Click(object sender, RoutedEventArgs e)
-        {
-            AddStationWindow addStationWindow = new AddStationWindow();
-            addStationWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            bool? result = addStationWindow.ShowDialog();
-
-            if (result == true)
-            {
-                LayoutManager.Stations.Add(addStationWindow.StationName);
-                LayoutManager.SaveStationsAsync();
-            }
-        }
-
-        /// <summary>
-        /// Return to the dashboard
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void Back_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.MainWindow.Content = new Dashboard();
-        }
-
-
-        //--------------------DRAG AND DROP FUNCTIONALITY--------------------//
-
+        // Stores the initial position where the user clicks before a drag starts
         private Point _dragStartPoint;
 
-        /// <summary>
-        /// Get the starting point of the potential drag operation
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void StationsListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        public EditLayout()
+        {
+            // Initialize UI components and set up the ViewModel
+            InitializeComponent();
+            DataContext = new EditLayoutViewModel();
+        }
+
+        // Records the position of the mouse when the user begins clicking
+        private void ListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(null);
         }
 
-        /// <summary>
-        /// determine if the mouse has moved far enough to initiate a drag
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void StationsListBox_PreviewMouseMove(object sender, MouseEventArgs e)
+        // Detects if a drag should start based on mouse movement
+        private void ListBox_PreviewMouseMove(object sender, MouseEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (e.LeftButton == MouseButtonState.Pressed && sender is ListBox listBox)
             {
                 Point currentPosition = e.GetPosition(null);
                 Vector diff = _dragStartPoint - currentPosition;
 
-                // Check if the mouse has moved far enough to initiate a drag.
+                // Check if the movement is large enough to qualify as a drag
                 if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                     Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
                 {
-                    // Get the ListBox and the dragged ListBoxItem.
-                    ListBox listBox = sender as ListBox;
-                    ListBoxItem listBoxItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-                    if (listBoxItem == null)
-                        return;
-
-                    // Retrieve the data item corresponding to the ListBoxItem.
-                    string station = (string)listBox.ItemContainerGenerator.ItemFromContainer(listBoxItem);
-                    if (station != null)
+                    // Start dragging the selected station name
+                    if (listBox.SelectedItem is string draggedStation && listBox.DataContext is EditLayoutViewModel viewModel)
                     {
-                        // Package the data for drag-and-drop.
-                        DataObject dragData = new DataObject("myStationFormat", station);
-                        DragDrop.DoDragDrop(listBoxItem, dragData, DragDropEffects.Move);
+                        viewModel.StartDrag(draggedStation);
+                        DragDrop.DoDragDrop(listBox, draggedStation, DragDropEffects.Move);
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// Determine which items to swich on drop
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void StationsListBox_Drop(object sender, DragEventArgs e)
+        // Handles the drop action when the dragged item is released over the ListBox
+        private void ListBox_Drop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent("myStationFormat"))
+            if (e.Data.GetDataPresent(DataFormats.StringFormat) && sender is ListBox listBox)
             {
-                string station = e.Data.GetData("myStationFormat") as string;
-                ListBox listBox = sender as ListBox;
+                // Default to placing the item at the end
+                int targetIndex = listBox.Items.Count - 1;
 
-                // Get the drop position relative to the ListBox.
+                // Find the index where the drop should occur based on mouse position
                 Point dropPosition = e.GetPosition(listBox);
-                int targetIndex = -1;
-
-                // Determine where in the list the drop occurred.
                 for (int i = 0; i < listBox.Items.Count; i++)
                 {
-                    ListBoxItem item = (ListBoxItem)listBox.ItemContainerGenerator.ContainerFromIndex(i);
-                    if (item != null)
+                    if (listBox.ItemContainerGenerator.ContainerFromIndex(i) is ListBoxItem item)
                     {
-                        // Translate the item's position to the ListBox coordinate space.
                         Point itemPosition = item.TranslatePoint(new Point(0, 0), listBox);
                         if (dropPosition.Y < itemPosition.Y + item.ActualHeight / 2)
                         {
@@ -161,51 +69,13 @@ namespace KDSUI.Pages
                         }
                     }
                 }
-                // If no valid index found, drop at the end.
-                if (targetIndex == -1)
+
+                // Notify the ViewModel to handle reordering
+                if (listBox.DataContext is EditLayoutViewModel viewModel)
                 {
-                    targetIndex = listBox.Items.Count;
-                }
-
-                // Find the original index of the dragged item.
-                int oldIndex = LayoutManager.Stations.IndexOf(station);
-                if (oldIndex >= 0)
-                {
-                    // Remove the item first.
-                    LayoutManager.Stations.RemoveAt(oldIndex);
-
-                    // If the dragged item was before the drop target, adjust targetIndex.
-                    if (oldIndex < targetIndex)
-                    {
-                        targetIndex--;
-                    }
-
-                    // Clamp targetIndex to be within the valid range.
-                    targetIndex = Math.Max(0, Math.Min(targetIndex, LayoutManager.Stations.Count));
-
-                    // Insert the item at the new target index.
-                    LayoutManager.Stations.Insert(targetIndex, station);
-                    System.Diagnostics.Debug.WriteLine(LayoutManager.Stations.ToString());
-                    LayoutManager.SaveStationsAsync();
+                    viewModel.Drop(targetIndex);
                 }
             }
-        }
-
-        /// <summary>
-        /// Get the ListBoxItem that contains the specified element.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="current"></param>
-        /// <returns></returns>
-        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
-        {
-            while (current != null)
-            {
-                if (current is T)
-                    return (T)current;
-                current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
         }
     }
 }

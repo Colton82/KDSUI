@@ -1,0 +1,111 @@
+﻿<Page x:Class="KDSUI.Pages.Analytics"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:vm="clr-namespace:KDSUI.ViewModels"
+      Title="Analytics"
+      Background="White">
+
+    <!-- Assigns the ViewModel for this page -->
+    <Page.DataContext>
+        <vm:AnalyticsViewModel />
+    </Page.DataContext>
+
+    <Grid Margin="30">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="3*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Navigates back to the previous screen -->
+        <Button Content="← Back" Command="{Binding BackCommand}"
+                Background="Gray" Foreground="White" FontSize="16"
+                Padding="8,4" BorderBrush="DarkGray"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Cursor="Hand"
+                Margin="0,0,20,0"/>
+
+        <!-- Left side panel containing filters and summary data -->
+        <StackPanel Grid.Column="0" Margin="30" VerticalAlignment="Top">
+
+            <!-- Dropdown menu for selecting a time range -->
+            <ComboBox ItemsSource="{Binding TimeframeOptions}" 
+                      SelectedItem="{Binding SelectedTimeframe, Mode=TwoWay}"
+                      SelectionChanged="ComboBox_SelectionChanged"
+                      FontSize="16"
+                      Width="180"
+                      Background="White"
+                      Foreground="Black"
+                      BorderBrush="Gray"
+                      Cursor="Hand"
+                      Margin="0,20"/>
+
+            <!-- Displays the average ticket time -->
+            <TextBlock Text="{Binding AverageTicketTime, StringFormat='Avg Ticket Time: {0:F2} mins'}"
+                       Foreground="Black" 
+                       FontSize="20" FontWeight="Bold"
+                       Margin="0,30"/>
+
+            <!-- Lists the busiest days based on order traffic -->
+            <TextBlock Text="Busiest Days:" FontSize="18" FontWeight="Bold" Margin="0,20,0,5"/>
+            <ItemsControl ItemsSource="{Binding BusiestDays}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Day}" FontSize="16" Margin="5,0"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Lists the hours of the day with the highest order volume -->
+            <TextBlock Text="Peak Hours:" FontSize="18" FontWeight="Bold" Margin="0,20,0,5"/>
+            <ItemsControl ItemsSource="{Binding PeakHours}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding FormattedHour}" FontSize="16" Margin="5,0"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Right side panel displaying station performance metrics -->
+        <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1.5" CornerRadius="10"
+                Padding="20" Margin="10" Background="White">
+
+            <StackPanel>
+
+                <!-- Header for the station performance section -->
+                <TextBlock Text="Station Performance" 
+                           FontSize="22" FontWeight="Bold" 
+                           Foreground="Black" HorizontalAlignment="Center" 
+                           Margin="0,0,0,15"/>
+
+                <!-- Displays station performance data in a formatted table -->
+                <DataGrid ItemsSource="{Binding StationPerformance}" AutoGenerateColumns="False" 
+                          Background="White" Foreground="Black"
+                          GridLinesVisibility="None"
+                          BorderThickness="0"
+                          FontSize="16"
+                          RowBackground="White"
+                          AlternatingRowBackground="#F2F2F2"
+                          VerticalGridLinesBrush="LightGray"
+                          HorizontalGridLinesBrush="Transparent">
+
+                    <!-- Styles the column headers -->
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <!-- Defines the columns to display for each station -->
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Station" Binding="{Binding Station}" Width="1.2*"/>
+                        <DataGridTextColumn Header="Total Time (%)" Binding="{Binding Percentage, StringFormat='{}{0:F2}%'}" Width="1*"/>
+                        <DataGridTextColumn Header="Avg Time" Binding="{Binding AvgTime, StringFormat='{}{0:F2} mins'}" Width="1*"/>
+                    </DataGrid.Columns>
+
+                </DataGrid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

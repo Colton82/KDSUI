@@ -1,0 +1,166 @@
+﻿<Page x:Class="KDSUI.Pages.EditOrders"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:KDSUI.Pages"
+      xmlns:vm="clr-namespace:KDSUI.ViewModels"
+      mc:Ignorable="d"
+      Title="Edit Orders"
+      Background="#f4f4f4">
+
+    <!-- Bind the ViewModel for data context -->
+    <Page.DataContext>
+        <vm:EditOrdersViewModel/>
+    </Page.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Button to go back to the dashboard -->
+        <Button Content="← Back" Command="{Binding BackCommand}"
+                Background="LightGray" Foreground="Black" FontSize="14" 
+                Padding="5" BorderBrush="Gray" BorderThickness="1" 
+                HorizontalAlignment="Left" VerticalAlignment="Top" 
+                Margin="5"/>
+
+        <!-- Panel for editing order details -->
+        <Border Grid.Row="1" Grid.Column="0" Margin="10" Padding="20" Background="White" 
+                CornerRadius="10" BorderBrush="LightGray" BorderThickness="1">
+            <StackPanel>
+
+                <!-- Section title -->
+                <TextBlock Text="Edit Order" FontSize="20" FontWeight="Bold" Foreground="Black" 
+                           TextAlignment="Center" Margin="0,0,0,10"/>
+
+                <!-- Read-only field showing order ID -->
+                <TextBlock Text="Order ID:" FontWeight="Bold"/>
+                <TextBox Text="{Binding SelectedOrder.Id, Mode=TwoWay}" IsReadOnly="True"
+                         BorderBrush="Gray" BorderThickness="1" Margin="0,5,0,10"/>
+
+                <!-- Editable customer name field -->
+                <TextBlock Text="Customer Name:" FontWeight="Bold"/>
+                <TextBox Text="{Binding SelectedOrder.CustomerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         BorderBrush="Gray" BorderThickness="1" Margin="0,5,0,10"/>
+
+                <!-- Dropdown for selecting a station -->
+                <TextBlock Text="Station:" FontWeight="Bold"/>
+                <ComboBox ItemsSource="{Binding Stations}"
+                          SelectedItem="{Binding SelectedOrder.Station, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          BorderBrush="Gray" BorderThickness="1" Margin="0,5,0,10"/>
+
+                <!-- Editable list of order items -->
+                <TextBlock Text="Order Items:" FontWeight="Bold"/>
+                <ListBox ItemsSource="{Binding EditableItems}" BorderBrush="Gray"
+                         BorderThickness="1" Margin="0,5,0,10">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+
+                            <!-- Each item is shown in an expandable section -->
+                            <Expander Header="{Binding Name}" IsExpanded="True">
+                                <StackPanel Margin="5">
+
+                                    <!-- Editable list of item properties (e.g. modifiers) -->
+                                    <ItemsControl ItemsSource="{Binding Properties}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1.5*" />
+                                                        <ColumnDefinition Width="2*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBox Text="{Binding Key, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                             BorderBrush="Gray" BorderThickness="1" Margin="2" 
+                                                             Width="100"/>
+
+                                                    <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                             Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Margin="2"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Button to add a new property to the item -->
+                                    <Button Content="+ Add Property" Command="{Binding DataContext.AddPropertyCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                            CommandParameter="{Binding}" Margin="5" Padding="5"/>
+                                </StackPanel>
+                            </Expander>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Button to confirm and update the order -->
+                <Button Content="Update Order" Command="{Binding UpdateOrderCommand}" 
+                        Background="#0078D7" Foreground="White" FontWeight="Bold"
+                        Padding="10" BorderBrush="#005A9E" BorderThickness="1"
+                        HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Right-side panel displaying the list of all orders -->
+        <Border Grid.Row="1" Grid.Column="1" Margin="10" Padding="20" Background="White" 
+                CornerRadius="10" BorderBrush="LightGray" BorderThickness="1">
+            <Grid>
+                <!-- Header -->
+                <TextBlock Text="Orders" FontSize="20" FontWeight="Bold" Foreground="Black" 
+                           TextAlignment="Center" Margin="0,0,0,10"/>
+
+                <!-- List of orders -->
+                <ListBox ItemsSource="{Binding Orders}" 
+                         SelectedItem="{Binding SelectedOrder, Mode=TwoWay}" 
+                         ScrollViewer.CanContentScroll="False"
+                         BorderThickness="0"
+                         HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="5" Margin="5">
+                                <StackPanel Orientation="Vertical" Margin="10">
+
+                                    <!-- Customer name -->
+                                    <TextBlock Text="{Binding CustomerName}" FontWeight="Bold"/>
+
+                                    <!-- List of items -->
+                                    <TextBlock Text="Items:" FontWeight="Bold"/>
+                                    <ItemsControl ItemsSource="{Binding Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Vertical">
+
+                                                    <!-- Item name -->
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+
+                                                    <!-- List of item properties -->
+                                                    <ItemsControl ItemsSource="{Binding Properties}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Key}" FontWeight="SemiBold"/>
+                                                                    <TextBlock Text="{Binding Value}" Margin="5,0"/>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- Current station -->
+                                    <TextBlock Text="{Binding Station}" FontStyle="Italic"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>
