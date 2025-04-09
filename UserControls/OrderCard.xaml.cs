@@ -81,7 +81,7 @@ namespace KDSUI.UserControls
         private void UpdateTimer(object sender, ElapsedEventArgs e)
         {
             TimeSpan elapsed = DateTime.Now - _orderTime;
-            string formattedTime = $"{(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
+            string formattedTime = $"{(int)elapsed.TotalHours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds}";
 
             try
             {

@@ -87,7 +87,8 @@
                           RowBackground="White"
                           AlternatingRowBackground="#F2F2F2"
                           VerticalGridLinesBrush="LightGray"
-                          HorizontalGridLinesBrush="Transparent">
+                          HorizontalGridLinesBrush="Transparent"
+                          IsReadOnly="true">
 
                     <!-- Styles the column headers -->
                     <DataGrid.Resources>
